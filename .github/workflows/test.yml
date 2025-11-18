@@ -1,0 +1,17 @@
+on: [push]
+
+name: test
+
+jobs:
+  centos:
+    container: centos:8
+    runs-on: [self-hosted, Linux, X64]
+    env:
+      TEST_STRING: "VERY_COOL_STRING"
+      TEST_STRING2: "VERY_COOL_STRING2"
+      
+    steps:
+    - name: checkout
+      env:
+        INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: _secret_custom_checkout
