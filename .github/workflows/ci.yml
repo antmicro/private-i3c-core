@@ -1,0 +1,147 @@
+name: I3C CI
+on:
+  push:
+    branches: ["main", "87005-public_ci"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  axi_verification:
+    name: Axi Verification
+    runs-on: ubuntu-24.04
+    env:
+      DEBIAN_FRONTEND: "noninteractive"
+      VERIBLE_VERSION: "v0.0-4023-gc1271a00/verible-v0.0-4023-gc1271a00-linux-static-x86_64"
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt -qqy update
+          sudo apt -qqy --no-install-recommends install help2man libfl-dev make g++ git bison flex gperf \
+                                                        libreadline-dev libbz2-dev autoconf python3-sphinx \
+                                                        python3-docopt
+
+      - name: Setup repository
+        uses: actions/checkout@v4
+
+      - name: Get Submodules
+        run: |
+          git submodule update --init --recursive
+
+      - name: Install Pyenv
+        run: |
+          ./install.sh
+
+      - name: Install verible
+        run: |
+          wget -qO- https://github.com/chipsalliance/verible/releases/download/$VERIBLE_VERSION.tar.gz | \
+          gunzip | tar xf - --strip-components 2 --directory /usr/local/bin 
+
+      - name: Build Verilator
+        run: |
+          git clone https://github.com/verilator/verilator -b v5.024
+          cd verilator
+          autoconf
+          ./configure
+          make -j$(nproc)
+          sudo make install
+          verilator --version
+
+      - name: Verify
+        env:
+          MAKE_TARGET: "tests-axi"
+        run: |
+          ./install.sh
+          make install-uvm
+          source activate.sh
+          make ${MAKE_TARGET}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: axi-verification
+          path: verification/cocotb
+
+  coverage:
+    name: Process Coverage
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    needs: [ custom_axi_verification ]
+    container: antmicro/centos-dev-tools
+    env:
+      GHA_EXTERNAL_DISK: additional-tools-all
+      GHA_SA: gh-sa-i3c-core-uploader
+    steps:
+      - name: Get repository
+        run: _secret_custom_checkout:6
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
+      - name: Prepare platform
+        run: _secret_i3c_platform_prepare:3
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Process Coverage
+        run: _secret_i3c_process_coverage:1
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  custom_lint:
+    name: Custom Lint
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    container: antmicro/centos-dev-tools
+    env:
+      GHA_EXTERNAL_DISK: caliptra-i3c-tools
+      GHA_SA: gh-sa-i3c-core-uploader
+    steps:
+      - name: Get repository
+        run: _secret_custom_checkout:6
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
+      - name: Get tools
+        run: _secret_custom_get_tools:2
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VC_STATIC_KEY: ${{ secrets.VC_STATIC_KEY }}
+
+      - name: Custom Lint
+        run: _secret_i3c_custom_lint:4
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  custom_axi_verification:
+    name: Custom Axi Verification
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    container: antmicro/centos-dev-tools
+    env:
+      GHA_SA: gh-sa-i3c-core-uploader
+      GHA_EXTERNAL_DISK: caliptra-i3c-tools
+    steps:
+      - name: Get repository
+        run: _secret_custom_checkout:6
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
+      - name: Prepare platform
+        run: _secret_i3c_platform_prepare:1
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get tools
+        run: _secret_custom_get_tools:2
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AVERY_AXI_KEY: ${{ secrets.AVERY_AXI_KEY }}
+          AVERY_I3C_KEY: ${{ secrets.AVERY_I3C_KEY }}
+          VCS_KEY: ${{ secrets.VCS_KEY }}
+
+      - name: Custom Axi Verification
+        run: _secret_i3c_custom_axi_test:3
+        env:
+          SIM_RETRY_CONDITION: "Check your license file|Cannot connect to the license server|Failed to obtain license|License check .* failed"
+          TEST_COVERAGE_ENABLE: 1
+          CI_PARALLEL_INDEX: 1
+          CI_PARALLEL_TOTAL: 1
+          TEST_ITERATIONS: 1
+          MAKE_TARGET: "tests-axi"
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
