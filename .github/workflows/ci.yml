@@ -1,0 +1,51 @@
+name: I3C CI
+on:
+  push:
+    branches: ["main", "87005-public_ci"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # verification_axi:
+  #   name: Verification AXI
+  #   uses: ./.github/workflows/verification_axi.yml
+
+  # custom_cococtb_axi:
+  #   name: Custom cocotb AXI
+  #   uses: ./github/workflows/custom_cocotb_axi.yml
+
+  lint:
+    name: Lint
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    container: centos:8
+    steps:
+      - name: Get repository
+        run: _secret_combined_i3c
+        env:
+          SECRET_NAME: _secret_custom_checkout
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
+
+      - name: Lint
+        run: _secret_combined_i3c
+        env:
+          SECRET_NAME: _secret_i3c_lint
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # custom_lint:
+  #   name: Custom Lint
+  #   runs-on: centos-8
+  #   env:
+  #     GHA_EXTERNAL_DISK: caliptra-i3-tools
+  #     SECRETS_VERSION: 7
+  #   steps:
+  #     - name: Get repository
+  #       run: _secret_combined_${{ env.SECRETS_VERSION }}
+  #       env:
+  #         SECRET_NAME: _secret_custom_checkout
+  #         INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         INPUT_SUBMODULES: RECURSIVE
+  #     - name: Custom Lint
+  #       env:
+  #         SECRET_NAME: 
+  #         VC_STATIC_KEY: ${{ secrets.VC_STATIC_KEY }}
