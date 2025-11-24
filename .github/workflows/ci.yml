@@ -6,13 +6,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  # verification_axi:
-  #   name: Verification AXI
-  #   uses: ./.github/workflows/verification_axi.yml
+  verification_axi:
+    name: Verification AXI
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    container: centos:8
+    steps:
+      - name: Get repository
+        run: _secret_combined_i3c
+        env:
+          SECRET_NAME: _secret_custom_checkout
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
 
-  # custom_cococtb_axi:
-  #   name: Custom cocotb AXI
-  #   uses: ./github/workflows/custom_cocotb_axi.yml
+      - name: Prepare Python 3.10
+        run: _secret_combined_i3c
+        env:
+          SECRET_NAME: _secret_i3c_platform_prepare
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify AXI
+        run: _secret_combined_i3c
+        env:
+          SECRET_NAME: _secret_i3c_verify_axi
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   lint:
     name: Lint
@@ -25,6 +41,12 @@ jobs:
           SECRET_NAME: _secret_custom_checkout
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_SUBMODULES: RECURSIVE
+
+      - name: Prepare Python 3.10
+        run: _secret_combined_i3c
+        env:
+          SECRET_NAME: _secret_i3c_platform_prepare
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint
         run: _secret_combined_i3c
