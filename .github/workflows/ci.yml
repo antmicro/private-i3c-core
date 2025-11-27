@@ -1,7 +1,7 @@
 name: I3C CI
 on:
   push:
-    branches: ["main", "87005-public_ci"]
+    branches: ["main", "87005-public_ci", "gpla/ci-tests"]
   pull_request:
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ jobs:
     container: centos:8
     steps:
       - name: Get repository
-        run: _secret_combined_i3c
+        run: _secret_combined_i3c:27
         env:
           SECRET_NAME: _secret_custom_checkout
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
