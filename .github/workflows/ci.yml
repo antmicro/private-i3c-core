@@ -90,7 +90,7 @@ jobs:
     runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
     container: antmicro/centos-dev-tools
     env:
-      GHA_EXTERNAL_DISK: caliptra-i3c-tools
+      GHA_EXTERNAL_DISK: additional-tools-all
       GHA_SA: gh-sa-i3c-core-uploader
     steps:
       - name: Get repository
@@ -98,14 +98,8 @@ jobs:
         env:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_SUBMODULES: RECURSIVE
-      - name: Get tools
-        run: _secret_custom_get_tools:2
-        env:
-          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VC_STATIC_KEY: ${{ secrets.VC_STATIC_KEY }}
-
       - name: Custom Lint
-        run: _secret_i3c_custom_lint:4
+        run: _secret_i3c_custom_lint:13
         env:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -114,8 +108,8 @@ jobs:
     runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
     container: antmicro/centos-dev-tools
     env:
+      GHA_EXTERNAL_DISK: additional-tools-all
       GHA_SA: gh-sa-i3c-core-uploader
-      GHA_EXTERNAL_DISK: caliptra-i3c-tools
     steps:
       - name: Get repository
         run: _secret_custom_checkout:6
@@ -123,20 +117,11 @@ jobs:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_SUBMODULES: RECURSIVE
       - name: Prepare platform
-        run: _secret_i3c_platform_prepare:1
+        run: _secret_i3c_platform_prepare:3
         env:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get tools
-        run: _secret_custom_get_tools:2
-        env:
-          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AVERY_AXI_KEY: ${{ secrets.AVERY_AXI_KEY }}
-          AVERY_I3C_KEY: ${{ secrets.AVERY_I3C_KEY }}
-          VCS_KEY: ${{ secrets.VCS_KEY }}
-
       - name: Custom Axi Verification
-        run: _secret_i3c_custom_axi_test:3
+        run: _secret_i3c_custom_axi_test:14
         env:
           SIM_RETRY_CONDITION: "Check your license file|Cannot connect to the license server|Failed to obtain license|License check .* failed"
           TEST_COVERAGE_ENABLE: 1
