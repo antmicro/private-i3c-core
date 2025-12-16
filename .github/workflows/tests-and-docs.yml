@@ -144,6 +144,34 @@ jobs:
           name: tests-results
           path: verification/cocotb
 
+  custom_axi_verification:
+    name: Custom Axi Verification
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    container: antmicro/centos-dev-tools
+    env:
+      GHA_EXTERNAL_DISK: additional-tools-all
+      GHA_SA: gh-sa-i3c-core-uploader
+    steps:
+      - name: Get repository
+        run: _secret_custom_checkout:6
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
+      - name: Prepare platform
+        run: _secret_i3c_platform_prepare:3
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Custom Axi Verification
+        run: _secret_i3c_custom_axi_test:14
+        env:
+          SIM_RETRY_CONDITION: "Check your license file|Cannot connect to the license server|Failed to obtain license|License check .* failed"
+          TEST_COVERAGE_ENABLE: 1
+          CI_PARALLEL_INDEX: 1
+          CI_PARALLEL_TOTAL: 1
+          TEST_ITERATIONS: 1
+          MAKE_TARGET: "tests-axi"
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   docs-build:
     name: Documentation build
     runs-on: ubuntu-latest
