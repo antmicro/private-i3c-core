@@ -10,8 +10,50 @@ permissions:
   contents: write
 
 jobs:
-  build-and-test:
-    name: Build and test
+
+  coverage:
+    name: Process Coverage
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    needs: [ custom_axi_verification, axi_verification ]
+    container: antmicro/centos-dev-tools
+    env:
+      GHA_EXTERNAL_DISK: additional-tools-all
+      GHA_SA: gh-sa-i3c-core-uploader
+    steps:
+      - name: Get repository
+        run: _secret_custom_checkout:6
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
+      - name: Prepare platform
+        run: _secret_i3c_platform_prepare:3
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Process Coverage
+        run: _secret_i3c_process_coverage:1
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  custom_lint:
+    name: Custom Lint
+    runs-on: [ self-hosted, Linux, X64, gcp-custom-runners ]
+    container: antmicro/centos-dev-tools
+    env:
+      GHA_EXTERNAL_DISK: additional-tools-all
+      GHA_SA: gh-sa-i3c-core-uploader
+    steps:
+      - name: Get repository
+        run: _secret_custom_checkout:6
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUBMODULES: RECURSIVE
+      - name: Custom Lint
+        run: _secret_i3c_custom_lint:13
+        env:
+          INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  axi_verification:
+    name: Axi Verification
     runs-on: ubuntu-latest
     env:
       DEBIAN_FRONTEND: "noninteractive"
@@ -61,6 +103,42 @@ jobs:
           source activate.sh
           make tests-axi
 
+      - name: Process coverage
+        run: |
+         python3.11 -m venv .venv
+         source .venv/bin/activate
+         python3.11 -m pip install -r requirements.txt
+         python3.11 -m pip install git+https://github.com/antmicro/info-process.git
+         mkdir -p artifacts/results
+         source .venv/bin/activate
+
+         COVERAGE_DIR="$(TMP="${CI_JOB_NAME////_}"; echo "artifacts/coverage/${TMP// /_}")"
+         mkdir -p "${COVERAGE_DIR}"
+         COVERAGE_DIR="$(realpath "${COVERAGE_DIR}")"
+         (cd verification/cocotb && find -name \*.dat -not -name Vtop\*.dat | xargs cp -Lrv --parents -t "${COVERAGE_DIR}")
+
+         for cov in $(find "${COVERAGE_DIR}" -type f -name \*.dat); do
+          out_file="$(dirname "${cov}")/$(basename "${cov}" .dat)_verilator.info"
+          verilator_coverage --skip-toggle --write-info "${out_file}" "${cov}"
+          verilator_coverage --toggle-only --write-info "${out_file%%_all_verilator.info}_toggle_verilator.info" "${cov}"
+          rm "${cov}"
+
+          info-process extract --coverage-type line --output "${out_file%%_all_verilator.info}_line_verilator.info" "${out_file}"
+          info-process extract --coverage-type cond --output "${out_file%%_all_verilator.info}_cond_verilator.info" "${out_file}"
+          info-process extract --coverage-type branch --output "${out_file%%_all_verilator.info}_branch_verilator.info" "${out_file}"
+          rm "${out_file}"
+         done
+         tar -c `find verification/cocotb -name \*.xml -o -name \*.log -o -name \*.info -o -name \*.vcd -o -name \*.dat -not -name Vtop*.dat` -f logs.tar
+         cd artifacts/results
+         tar xf ../../logs.tar
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: axi-verification
+          path: artifacts
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -70,7 +148,7 @@ jobs:
   docs-build:
     name: Documentation build
     runs-on: ubuntu-latest
-    needs: [build-and-test]
+    needs: [build-and-test, coverage]
     env:
       DEBIAN_FRONTEND: "noninteractive"
     steps:
