@@ -54,13 +54,41 @@ jobs:
           make install-uvm
           source activate.sh
           make ${MAKE_TARGET}
+      - name: Process coverage
+        run: |
+         python3.11 -m venv .venv
+         source .venv/bin/activate
+         python3.11 -m pip install -r requirements.txt
+         python3.11 -m pip install git+https://github.com/antmicro/info-process.git
+         mkdir -p artifacts/results
+         source .venv/bin/activate
+
+         COVERAGE_DIR="$(TMP="${CI_JOB_NAME////_}"; echo "artifacts/coverage/${TMP// /_}")"
+         mkdir -p "${COVERAGE_DIR}"
+         COVERAGE_DIR="$(realpath "${COVERAGE_DIR}")"
+         (cd verification/cocotb && find -name \*.dat -not -name Vtop\*.dat | xargs cp -Lrv --parents -t "${COVERAGE_DIR}")
+
+         for cov in $(find "${COVERAGE_DIR}" -type f -name \*.dat); do
+          out_file="$(dirname "${cov}")/$(basename "${cov}" .dat)_verilator.info"
+          verilator_coverage --skip-toggle --write-info "${out_file}" "${cov}"
+          verilator_coverage --toggle-only --write-info "${out_file%%_all_verilator.info}_toggle_verilator.info" "${cov}"
+          rm "${cov}"
+
+          info-process extract --coverage-type line --output "${out_file%%_all_verilator.info}_line_verilator.info" "${out_file}"
+          info-process extract --coverage-type cond --output "${out_file%%_all_verilator.info}_cond_verilator.info" "${out_file}"
+          info-process extract --coverage-type branch --output "${out_file%%_all_verilator.info}_branch_verilator.info" "${out_file}"
+          rm "${out_file}"
+         done
+         tar -c `find verification/cocotb -name \*.xml -o -name \*.log -o -name \*.info -o -name \*.vcd -o -name \*.dat -not -name Vtop*.dat` -f logs.tar
+         cd artifacts/results
+         tar xf ../../logs.tar
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: axi-verification
-          path: verification/cocotb
+          path: artifacts
 
   coverage:
     name: Process Coverage
