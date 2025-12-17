@@ -133,7 +133,7 @@ jobs:
           TEST_COVERAGE_ENABLE: 1
           CI_PARALLEL_INDEX: 1
           CI_PARALLEL_TOTAL: 1
-          TEST_ITERATIONS: 1
+          TEST_ITERATIONS: 5
           MAKE_TARGET: "tests-axi"
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
