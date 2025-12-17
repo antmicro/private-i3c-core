@@ -105,11 +105,10 @@ jobs:
 
       - name: Process coverage
         run: |
+         ./install.sh
          source activate.sh
-         python -m pip install -r requirements.txt
          python -m pip install git+https://github.com/antmicro/info-process.git
          mkdir -p artifacts/results
-         source .venv/bin/activate
 
          COVERAGE_DIR="$(TMP="${CI_JOB_NAME////_}"; echo "artifacts/coverage/${TMP// /_}")"
          mkdir -p "${COVERAGE_DIR}"
