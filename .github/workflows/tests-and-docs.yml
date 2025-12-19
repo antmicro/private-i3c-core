@@ -115,7 +115,7 @@ jobs:
     container: antmicro/centos-dev-tools:slim
     env:
       GHA_EXTERNAL_DISK: additional-tools-all
-      GHA_SA: gh-sa-i3c-core-chips-uploader
+      GHA_SA: gh-sa-i3c-core-uploader
     steps:
       - name: Get repository
         run: _secret_custom_checkout:6
@@ -123,11 +123,11 @@ jobs:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_SUBMODULES: RECURSIVE
       - name: Prepare platform
-        run: _secret_i3c_platform_prepare:4
+        run: _secret_i3c_platform_prepare:3
         env:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Custom Axi Verification
-        run: _secret_i3c_custom_axi_test:15
+        run: _secret_i3c_custom_axi_test:14
         env:
           SIM_RETRY_CONDITION: "Check your license file|Cannot connect to the license server|Failed to obtain license|License check .* failed"
           TEST_COVERAGE_ENABLE: 1
@@ -144,7 +144,7 @@ jobs:
     container: antmicro/centos-dev-tools:slim
     env:
       GHA_EXTERNAL_DISK: additional-tools-all
-      GHA_SA: gh-sa-i3c-core-chips-uploader
+      GHA_SA: gh-sa-i3c-core-uploader
     steps:
       - name: Get repository
         run: _secret_custom_checkout:6
@@ -152,11 +152,11 @@ jobs:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_SUBMODULES: RECURSIVE
       - name: Prepare platform
-        run: _secret_i3c_platform_prepare:4
+        run: _secret_i3c_platform_prepare:3
         env:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Process Coverage
-        run: _secret_i3c_process_coverage:2
+        run: _secret_i3c_process_coverage:1
         env:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
@@ -235,7 +235,7 @@ jobs:
     container: antmicro/centos-dev-tools:slim
     env:
       GHA_EXTERNAL_DISK: additional-tools-all
-      GHA_SA: gh-sa-i3c-core-chips-uploader
+      GHA_SA: gh-sa-i3c-core-uploader
     steps:
       - name: Get repository
         run: _secret_custom_checkout:6
@@ -243,7 +243,7 @@ jobs:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_SUBMODULES: RECURSIVE
       - name: Custom Lint
-        run: _secret_i3c_custom_lint:14
+        run: _secret_i3c_custom_lint:13
         env:
           INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
